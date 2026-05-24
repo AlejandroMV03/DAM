@@ -1,6 +1,7 @@
 import Dashboard from '../pages/Dashboard.jsx';
 import Estadisticas from '../pages/Estadisticas.jsx';
 import Ingresos from '../pages/Ingresos.jsx';
+import ProductosInventario from '../pages/ProductosInventario.jsx';
 import RegistroServicio from '../pages/RegistroServicios.jsx';
 import Tickets from '../pages/Tickets.jsx';
 
@@ -30,6 +31,12 @@ export const APP_ROUTES = [
     component: RegistroServicio,
   },
   {
+    id: 'productos',
+    nombre: 'Productos',
+    icono: 'P',
+    component: ProductosInventario,
+  },
+  {
     id: 'estadisticas',
     nombre: 'Estadisticas',
     icono: '%',
@@ -40,4 +47,3 @@ export const APP_ROUTES = [
 export function obtenerRutaPorId(id) {
   return APP_ROUTES.find((ruta) => ruta.id === id) || APP_ROUTES[0];
 }
-

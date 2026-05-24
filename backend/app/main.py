@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.routes import auth, catalog, customers, health, stats, tickets
+from app.routes import auth, catalog, customers, health, inventory, stats, tickets
 from app.utils.schema import aplicar_migraciones
 
 
@@ -57,6 +57,7 @@ def manejar_error_sql(_, exc: SQLAlchemyError):
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(catalog.router)
+app.include_router(inventory.router)
 app.include_router(customers.router)
 app.include_router(tickets.router)
 app.include_router(stats.router)

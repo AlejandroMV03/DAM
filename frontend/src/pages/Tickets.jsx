@@ -9,6 +9,7 @@ import {
   enviarTicketWhatsApp,
   formatearDinero,
   obtenerFechaHora,
+  separarConceptosPorTipo,
 } from '../utils/ticket';
 
 const filtrosIniciales = {
@@ -44,6 +45,31 @@ function obtenerConceptos(ticket) {
 function TicketPreview({ ticket }) {
   const datosFecha = obtenerFechaHora(ticket?.fecha_hora);
   const conceptos = obtenerConceptos(ticket);
+  const { servicios, productos } = separarConceptosPorTipo(conceptos);
+
+  const renderConceptos = (titulo, items) => {
+    if (!items.length) return null;
+
+    return (
+      <div className="ticket-preview__group">
+        <span>{titulo}</span>
+        {items.map((concepto, index) => (
+          <div key={`${titulo}-${concepto.nombre}-${index}`} className="ticket-preview__concept">
+            <span>
+              {index + 1}. {concepto.categoria_nombre || titulo}
+            </span>
+            <strong>{concepto.nombre}</strong>
+            <div>
+              <span>
+                {concepto.cantidad || 1} x {formatearDinero(concepto.precio)}
+              </span>
+              <b>{formatearDinero(concepto.subtotal)}</b>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <article className="ticket-preview">
@@ -81,20 +107,8 @@ function TicketPreview({ ticket }) {
       <div className="ticket-preview__line" />
 
       <div className="ticket-preview__service">
-        {conceptos.map((concepto, index) => (
-          <div key={`${concepto.nombre}-${index}`} className="ticket-preview__concept">
-            <span>
-              {index + 1}. {concepto.categoria_nombre || 'Producto'}
-            </span>
-            <strong>{concepto.nombre}</strong>
-            <div>
-              <span>
-                {concepto.cantidad || 1} x {formatearDinero(concepto.precio)}
-              </span>
-              <b>{formatearDinero(concepto.subtotal)}</b>
-            </div>
-          </div>
-        ))}
+        {renderConceptos('Servicios', servicios)}
+        {renderConceptos('Productos', productos)}
       </div>
 
       <div className="ticket-preview__total">

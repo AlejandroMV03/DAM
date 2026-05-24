@@ -1,11 +1,20 @@
 from app.schemas import (
+    AjusteInventarioCrear,
     CategoriaActualizar,
     CategoriaCrear,
+    CategoriaProductoActualizar,
+    CategoriaProductoCrear,
+    CategoriaProductoRespuesta,
     CategoriaRespuesta,
     ClienteCrear,
     ClienteRespuesta,
     ConceptoTicketCrear,
     ConceptoTicketRespuesta,
+    EntradaInventarioCrear,
+    MovimientoInventarioRespuesta,
+    ProductoActualizar,
+    ProductoCrear,
+    ProductoRespuesta,
     ServicioActualizar,
     ServicioCrear,
     ServicioRespuesta,
@@ -15,13 +24,22 @@ from app.schemas import (
 )
 
 __all__ = [
+    "AjusteInventarioCrear",
     "CategoriaActualizar",
     "CategoriaCrear",
+    "CategoriaProductoActualizar",
+    "CategoriaProductoCrear",
+    "CategoriaProductoRespuesta",
     "CategoriaRespuesta",
     "ClienteCrear",
     "ClienteRespuesta",
     "ConceptoTicketCrear",
     "ConceptoTicketRespuesta",
+    "EntradaInventarioCrear",
+    "MovimientoInventarioRespuesta",
+    "ProductoActualizar",
+    "ProductoCrear",
+    "ProductoRespuesta",
     "ServicioActualizar",
     "ServicioCrear",
     "ServicioRespuesta",
@@ -29,4 +47,3 @@ __all__ = [
     "TicketRespuesta",
     "limpiar_texto",
 ]
-

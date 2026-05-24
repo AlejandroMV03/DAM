@@ -18,9 +18,13 @@ const adicionalInicial = {
   tipo: 'servicio',
   categoria_id: '',
   servicio_id: '',
+  categoria_producto_id: '',
+  producto_id: '',
+  busqueda_producto: '',
   nombre: '',
   precio: '',
   cantidad: '1',
+  stock_disponible: 0,
 };
 
 function crearConceptoServicio(servicio, cantidad = 1) {
@@ -39,6 +43,26 @@ function crearConceptoServicio(servicio, cantidad = 1) {
   };
 }
 
+function crearConceptoProducto(producto, cantidad = 1) {
+  const qty = cantidadValida(cantidad);
+  const precio = Math.trunc(Number(producto.precio));
+  const categoriaNombre = producto.categoria_producto_nombre || 'Producto';
+
+  return {
+    tipo: 'producto',
+    categoria_id: null,
+    categoria_nombre: categoriaNombre,
+    servicio_id: null,
+    producto_id: producto.id,
+    categoria_producto_id: producto.categoria_producto_id,
+    categoria_producto_nombre: categoriaNombre,
+    nombre: producto.nombre,
+    precio,
+    cantidad: qty,
+    subtotal: precio * qty,
+  };
+}
+
 export default function Ingresos({ usuario }) {
   const [nombreCliente, setNombreCliente] = useState('');
   const [telefonoCliente, setTelefonoCliente] = useState('');
@@ -47,6 +71,8 @@ export default function Ingresos({ usuario }) {
   const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [categorias, setCategorias] = useState([]);
   const [servicios, setServicios] = useState([]);
+  const [categoriasProductos, setCategoriasProductos] = useState([]);
+  const [productos, setProductos] = useState([]);
   const [categoriaPrincipal, setCategoriaPrincipal] = useState('');
   const [servicioPrincipal, setServicioPrincipal] = useState('');
   const [adicional, setAdicional] = useState(adicionalInicial);
@@ -62,15 +88,22 @@ export default function Ingresos({ usuario }) {
   useEffect(() => {
     let activo = true;
 
-    Promise.all([api.obtenerCategorias(), api.obtenerServicios()])
-      .then(([categoriasData, serviciosData]) => {
+    Promise.all([
+      api.obtenerCategorias(),
+      api.obtenerServicios(),
+      api.obtenerCategoriasProductos(),
+      api.obtenerProductos(),
+    ])
+      .then(([categoriasData, serviciosData, categoriasProductosData, productosData]) => {
         if (!activo) return;
         setCategorias(categoriasData || []);
         setServicios(serviciosData || []);
+        setCategoriasProductos(categoriasProductosData || []);
+        setProductos(productosData || []);
       })
       .catch((err) => {
         if (activo) {
-          const mensajeError = err.message || 'No se pudo cargar categorias y servicios.';
+          const mensajeError = err.message || 'No se pudo cargar categorias, servicios y productos.';
           setError(mensajeError);
           toast.error(mensajeError);
         }
@@ -118,6 +151,16 @@ export default function Ingresos({ usuario }) {
     () => servicios.filter((servicio) => String(servicio.categoria_id) === String(adicional.categoria_id)),
     [adicional.categoria_id, servicios],
   );
+
+  const productosAdicionales = useMemo(() => {
+    const busqueda = adicional.busqueda_producto.trim().toLowerCase();
+    return productos.filter((producto) => {
+      const coincideCategoria =
+        !adicional.categoria_producto_id || String(producto.categoria_producto_id) === String(adicional.categoria_producto_id);
+      const coincideNombre = !busqueda || producto.nombre.toLowerCase().includes(busqueda);
+      return coincideCategoria && coincideNombre;
+    });
+  }, [adicional.busqueda_producto, adicional.categoria_producto_id, productos]);
 
   const servicioPrincipalActual = useMemo(
     () => servicios.find((servicio) => String(servicio.id) === String(servicioPrincipal)),
@@ -172,10 +215,27 @@ export default function Ingresos({ usuario }) {
     }));
   };
 
+  const cambiarProductoAdicional = (productoId) => {
+    const producto = productos.find((item) => String(item.id) === String(productoId));
+    setAdicional((actual) => ({
+      ...actual,
+      producto_id: productoId,
+      nombre: producto?.nombre || '',
+      precio: producto ? String(Math.trunc(Number(producto.precio))) : '',
+      stock_disponible: producto ? Number(producto.stock || 0) : 0,
+      cantidad: producto && Number(actual.cantidad || 0) > Number(producto.stock || 0) ? String(producto.stock || 0) : actual.cantidad,
+    }));
+  };
+
   const agregarAdicional = () => {
     setError('');
     const cantidad = cantidadValida(adicional.cantidad);
     const precio = Number(adicional.precio);
+
+    if (adicional.tipo === 'producto' && !adicional.producto_id) {
+      setError('Selecciona un producto valido.');
+      return;
+    }
 
     if (!Number.isInteger(precio) || precio <= 0 || !Number.isInteger(cantidad) || cantidad <= 0) {
       setError('El concepto adicional requiere precio y cantidad enteros mayores a cero.');
@@ -190,23 +250,23 @@ export default function Ingresos({ usuario }) {
       }
       setConceptosAdicionales((actuales) => [...actuales, crearConceptoServicio(servicio, cantidad)]);
     } else {
-      if (!adicional.nombre.trim()) {
-        setError('Escribe el nombre del producto.');
+      const producto = productos.find((item) => String(item.id) === String(adicional.producto_id));
+      if (!producto) {
+        setError('Selecciona un producto valido.');
         return;
       }
-      setConceptosAdicionales((actuales) => [
-        ...actuales,
-        {
-          tipo: 'producto',
-          categoria_id: null,
-          categoria_nombre: 'Producto',
-          servicio_id: null,
-          nombre: adicional.nombre.trim(),
-          precio,
-          cantidad,
-          subtotal: precio * cantidad,
-        },
-      ]);
+      if (cantidad > Number(producto.stock || 0)) {
+        setError(`Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}.`);
+        return;
+      }
+      const cantidadEnTicket = conceptosAdicionales
+        .filter((concepto) => concepto.tipo === 'producto' && String(concepto.producto_id) === String(producto.id))
+        .reduce((suma, concepto) => suma + Number(concepto.cantidad || 0), 0);
+      if (cantidadEnTicket + cantidad > Number(producto.stock || 0)) {
+        setError(`Ya agregaste ${cantidadEnTicket} de ${producto.nombre}. Disponible: ${producto.stock}.`);
+        return;
+      }
+      setConceptosAdicionales((actuales) => [...actuales, crearConceptoProducto(producto, cantidad)]);
     }
 
     setAdicional(adicionalInicial);
@@ -229,6 +289,24 @@ export default function Ingresos({ usuario }) {
 
     if (!conceptos.length || total <= 0) {
       setError('Agrega al menos un servicio o producto al ticket.');
+      return;
+    }
+
+    const stockInsuficiente = conceptos
+      .filter((concepto) => concepto.tipo === 'producto')
+      .reduce((acumulado, concepto) => {
+        const producto = productos.find((item) => String(item.id) === String(concepto.producto_id));
+        if (!producto) return { ...acumulado, mensaje: acumulado.mensaje || `Producto no encontrado: ${concepto.nombre}.` };
+        const cantidadActual = Number(acumulado.cantidades?.[producto.id] || 0) + Number(concepto.cantidad || 0);
+        const cantidades = { ...(acumulado.cantidades || {}), [producto.id]: cantidadActual };
+        if (cantidadActual > Number(producto.stock || 0)) {
+          return { mensaje: `Stock insuficiente para ${producto.nombre}. Disponible: ${producto.stock}.`, cantidades };
+        }
+        return { ...acumulado, cantidades };
+      }, { cantidades: {} });
+
+    if (stockInsuficiente.mensaje) {
+      setError(stockInsuficiente.mensaje);
       return;
     }
 
@@ -264,6 +342,7 @@ export default function Ingresos({ usuario }) {
       setModalAdicionalAbierto(false);
       setConceptosAdicionales([]);
       setMetodoPago('efectivo');
+      api.obtenerProductos().then((productosData) => setProductos(productosData || [])).catch(() => null);
     } catch (err) {
       const mensajeError = err.message || 'No se pudo procesar el cobro.';
       setError(mensajeError);
@@ -287,7 +366,7 @@ export default function Ingresos({ usuario }) {
           <strong>{usuario.nombre}</strong>
         </div>
 
-        {cargandoCatalogo && <Spinner label="Cargando categorias y servicios..." />}
+        {cargandoCatalogo && <Spinner label="Cargando categorias, servicios y productos..." />}
 
         <Alert type="error">{error}</Alert>
         <Alert type="success">{mensaje}</Alert>
@@ -388,10 +467,10 @@ export default function Ingresos({ usuario }) {
           <section className="form-section compact-add-section">
             <div>
               <h2>Cobros adicionales</h2>
-              <p className="muted-text">Agrega otro servicio o producto solo cuando el ticket lo necesite.</p>
+              <p className="muted-text">Agrega servicios o productos de inventario al mismo ticket.</p>
             </div>
             <button type="button" className="button button--ghost" onClick={() => setModalAdicionalAbierto(true)}>
-              + Agregar cobro adicional
+              + Agregar concepto
             </button>
           </section>
 
@@ -473,6 +552,7 @@ export default function Ingresos({ usuario }) {
                   <input
                     type="number"
                     min="1"
+                    max={adicional.tipo === 'producto' && adicional.stock_disponible ? adicional.stock_disponible : undefined}
                     step="1"
                     value={adicional.cantidad}
                     onChange={(e) =>
@@ -522,14 +602,71 @@ export default function Ingresos({ usuario }) {
                   </Field>
                 </div>
               ) : (
-                <Field label="Nombre del producto">
-                  <input
-                    type="text"
-                    placeholder="Ej. Gel para cabello"
-                    value={adicional.nombre}
-                    onChange={(e) => setAdicional((actual) => ({ ...actual, nombre: e.target.value }))}
-                  />
-                </Field>
+                <>
+                  <div className="form-grid form-grid--two">
+                    <Field label="Categoria producto">
+                      <select
+                        value={adicional.categoria_producto_id}
+                        onChange={(e) =>
+                          setAdicional((actual) => ({
+                            ...actual,
+                            categoria_producto_id: e.target.value,
+                            producto_id: '',
+                            nombre: '',
+                            precio: '',
+                            stock_disponible: 0,
+                          }))
+                        }
+                      >
+                        <option value="">Todas las categorias</option>
+                        {categoriasProductos.map((categoria) => (
+                          <option key={categoria.id} value={categoria.id}>
+                            {categoria.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    <Field label="Buscar producto">
+                      <input
+                        type="search"
+                        placeholder="Labial, shampoo..."
+                        value={adicional.busqueda_producto}
+                        onChange={(e) =>
+                          setAdicional((actual) => ({
+                            ...actual,
+                            busqueda_producto: e.target.value,
+                            producto_id: '',
+                            nombre: '',
+                            precio: '',
+                            stock_disponible: 0,
+                          }))
+                        }
+                      />
+                    </Field>
+                  </div>
+
+                  <Field label="Producto disponible">
+                    <select
+                      value={adicional.producto_id}
+                      onChange={(e) => cambiarProductoAdicional(e.target.value)}
+                    >
+                      <option value="">Selecciona un producto</option>
+                      {productosAdicionales.map((producto) => (
+                        <option key={producto.id} value={producto.id} disabled={Number(producto.stock || 0) <= 0}>
+                          {producto.nombre} - {formatearDinero(producto.precio)} - stock {producto.stock}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+
+                  {adicional.producto_id && (
+                    <div className="stock-summary">
+                      <span>Stock disponible</span>
+                      <strong>{adicional.stock_disponible}</strong>
+                    </div>
+                  )}
+                </>
               )}
 
               <Field label="Precio entero">
@@ -540,7 +677,7 @@ export default function Ingresos({ usuario }) {
                   placeholder="80"
                   value={adicional.precio}
                   onChange={(e) => setAdicional((actual) => ({ ...actual, precio: soloEnteros(e.target.value) }))}
-                  readOnly={adicional.tipo === 'servicio'}
+                  readOnly
                 />
               </Field>
 

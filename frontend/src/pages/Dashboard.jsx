@@ -9,6 +9,7 @@ const accesos = [
   { id: 'ingresos', titulo: 'Caja/Cobro', descripcion: 'Generar nuevo ticket', icono: '$' },
   { id: 'tickets', titulo: 'Historial Tickets', descripcion: 'Consultar ventas', icono: '#' },
   { id: 'servicios', titulo: 'Catalogo Servicios', descripcion: 'Precios y categorias', icono: '+' },
+  { id: 'productos', titulo: 'Productos', descripcion: 'Inventario y stock', icono: 'P' },
   { id: 'estadisticas', titulo: 'Estadisticas', descripcion: 'Ver rendimiento', icono: '%' },
 ];
 

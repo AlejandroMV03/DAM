@@ -11,6 +11,13 @@ export function formatearDinero(valor) {
   return `$${Number(valor || 0).toLocaleString('es-MX')}`;
 }
 
+export function separarConceptosPorTipo(conceptos = []) {
+  return {
+    servicios: conceptos.filter((concepto) => (concepto.tipo || 'servicio') !== 'producto'),
+    productos: conceptos.filter((concepto) => (concepto.tipo || 'servicio') === 'producto'),
+  };
+}
+
 export function obtenerFechaHora(valor) {
   const fecha = valor ? new Date(valor) : new Date();
 
@@ -42,6 +49,18 @@ export function mensajeWhatsAppTicket(ticket) {
 function textoTicket(ticket) {
   const folio = String(ticket?.id || '').padStart(4, '0');
   const { fecha, hora } = obtenerFechaHora(ticket?.fecha_hora);
+  const conceptos = ticket?.conceptos?.length
+    ? ticket.conceptos
+    : [
+        {
+          categoria_nombre: ticket?.categoria_servicio || 'Servicio',
+          nombre: ticket?.servicio_nombre || 'Servicio DAM',
+          precio: ticket?.precio_servicio || ticket?.total,
+          cantidad: 1,
+          subtotal: ticket?.total,
+        },
+      ];
+  const { servicios, productos } = separarConceptosPorTipo(conceptos);
 
   return {
     folio,
@@ -49,17 +68,9 @@ function textoTicket(ticket) {
     hora,
     cajero: ticket?.usuario_nombre || 'DAM',
     cliente: ticket?.cliente_nombre || 'Cliente general',
-    conceptos: ticket?.conceptos?.length
-      ? ticket.conceptos
-      : [
-          {
-            categoria_nombre: ticket?.categoria_servicio || 'Servicio',
-            nombre: ticket?.servicio_nombre || 'Servicio DAM',
-            precio: ticket?.precio_servicio || ticket?.total,
-            cantidad: 1,
-            subtotal: ticket?.total,
-          },
-        ],
+    conceptos,
+    servicios,
+    productos,
     total: formatearDinero(ticket?.total),
   };
 }
@@ -100,25 +111,30 @@ async function crearDocumentoTicketPDF(ticket) {
   y += 7;
   doc.line(8, y, 72, y);
 
-  y += 6;
-  doc.setFont('helvetica', 'bold');
-  doc.text('Conceptos', 8, y);
-  doc.text('Importe', 72, y, { align: 'right' });
+  const imprimirConceptos = (titulo, conceptos) => {
+    if (!conceptos.length) return;
 
-  doc.setFont('helvetica', 'normal');
-  datos.conceptos.forEach((concepto, index) => {
     y += 6;
-    const categoria = concepto.categoria_nombre || (concepto.tipo === 'producto' ? 'Producto' : 'Servicio');
-    const nombre = `${index + 1}. ${categoria} - ${concepto.nombre}`;
-    doc.text(nombre, 8, y, { maxWidth: 48 });
-    doc.text(formatearDinero(concepto.subtotal), 72, y, { align: 'right' });
-    if (Number(concepto.cantidad || 1) > 1) {
+    doc.setFont('helvetica', 'bold');
+    doc.text(titulo, 8, y);
+    doc.text('Importe', 72, y, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+
+    conceptos.forEach((concepto, index) => {
+      y += 6;
+      const categoria = concepto.categoria_nombre || (concepto.tipo === 'producto' ? 'Producto' : 'Servicio');
+      const nombre = `${index + 1}. ${categoria} - ${concepto.nombre}`;
+      doc.text(nombre, 8, y, { maxWidth: 48 });
+      doc.text(formatearDinero(concepto.subtotal), 72, y, { align: 'right' });
       y += 4;
       doc.setFontSize(7);
       doc.text(`${concepto.cantidad} x ${formatearDinero(concepto.precio)}`, 10, y);
       doc.setFontSize(8);
-    }
-  });
+    });
+  };
+
+  imprimirConceptos('Servicios', datos.servicios);
+  imprimirConceptos('Productos', datos.productos);
 
   y += 10;
   doc.line(8, y, 72, y);

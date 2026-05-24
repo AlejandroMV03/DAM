@@ -118,9 +118,12 @@ def construir_estadisticas(
     indice_puntos = {punto["clave"]: punto for punto in puntos}
     servicios = defaultdict(lambda: {"nombre": "", "servicio": "", "categoria": "", "cantidad": 0, "total": 0})
     productos = defaultdict(lambda: {"nombre": "", "producto": "", "categoria": "Producto", "cantidad": 0, "total": 0})
+    categorias_productos = defaultdict(lambda: {"nombre": "", "categoria": "", "cantidad": 0, "total": 0})
     ventas_por_dia = defaultdict(lambda: {"fecha": "", "total": 0, "tickets": 0})
 
     ingresos_totales = 0
+    total_servicios = 0
+    total_productos = 0
 
     for ticket in tickets:
         total = int(ticket.total or 0)
@@ -142,20 +145,47 @@ def construir_estadisticas(
 
         for detalle in detalles:
             servicio = None
+            producto = None
+            categoria_producto = None
             if detalle.servicio_id:
                 servicio = db.query(models.Servicio).filter(models.Servicio.id == detalle.servicio_id).first()
+            if detalle.producto_id:
+                producto = db.query(models.Producto).filter(models.Producto.id == detalle.producto_id).first()
+            if detalle.categoria_producto_id:
+                categoria_producto = (
+                    db.query(models.CategoriaProducto)
+                    .filter(models.CategoriaProducto.id == detalle.categoria_producto_id)
+                    .first()
+                )
 
-            nombre = detalle.nombre or detalle.nombre_servicio or (servicio.nombre if servicio else "Concepto")
-            categoria = detalle.categoria_servicio or (servicio.categoria if servicio else detalle.tipo or "General")
+            es_producto = (detalle.tipo or "servicio") == "producto"
+            nombre = detalle.nombre or detalle.nombre_servicio or (
+                producto.nombre if producto else servicio.nombre if servicio else "Concepto"
+            )
+            if es_producto:
+                categoria = (
+                    detalle.categoria_producto_nombre
+                    or (categoria_producto.nombre if categoria_producto else None)
+                    or "Producto"
+                )
+            else:
+                categoria = detalle.categoria_servicio or (servicio.categoria if servicio else "General")
             cantidad = int(detalle.cantidad or 1)
             total_detalle = int(detalle.subtotal or detalle.precio_cobrado or 0)
 
-            if (detalle.tipo or "servicio") == "producto":
+            if es_producto:
+                total_productos += total_detalle
                 productos[nombre]["nombre"] = nombre
                 productos[nombre]["producto"] = nombre
                 productos[nombre]["cantidad"] += cantidad
                 productos[nombre]["total"] += total_detalle
+                productos[nombre]["categoria"] = categoria
+                categorias_productos[categoria]["nombre"] = categoria
+                categorias_productos[categoria]["categoria"] = categoria
+                categorias_productos[categoria]["cantidad"] += cantidad
+                categorias_productos[categoria]["total"] += total_detalle
             else:
+                total_servicios += total_detalle
                 servicios[nombre]["nombre"] = nombre
                 servicios[nombre]["servicio"] = nombre
                 servicios[nombre]["categoria"] = categoria
@@ -164,6 +194,27 @@ def construir_estadisticas(
 
     servicios_ordenados = sorted(servicios.values(), key=lambda item: (item["cantidad"], item["total"]), reverse=True)[:8]
     productos_ordenados = sorted(productos.values(), key=lambda item: (item["cantidad"], item["total"]), reverse=True)[:8]
+    categorias_productos_ordenadas = sorted(
+        categorias_productos.values(),
+        key=lambda item: (item["cantidad"], item["total"]),
+        reverse=True,
+    )[:8]
+    productos_stock_bajo = (
+        db.query(models.Producto)
+        .filter(models.Producto.activo == True, models.Producto.stock <= models.Producto.stock_minimo)
+        .order_by(models.Producto.stock.asc(), models.Producto.nombre.asc())
+        .limit(8)
+        .all()
+    )
+    stock_bajo = [
+        {
+            "id": producto.id,
+            "nombre": producto.nombre,
+            "stock": int(producto.stock or 0),
+            "stock_minimo": int(producto.stock_minimo or 0),
+        }
+        for producto in productos_stock_bajo
+    ]
     mejor_dia = max(ventas_por_dia.values(), key=lambda item: item["total"], default=None)
     cantidad_tickets = len(tickets)
     ventas = [punto["ventas"] for punto in puntos]
@@ -178,16 +229,24 @@ def construir_estadisticas(
         "ventas": ventas,
         "puntos": puntos,
         "total": ingresos_totales,
+        "totalServicios": total_servicios,
+        "totalProductos": total_productos,
         "tickets": cantidad_tickets,
         "promedio": promedio,
         "serviciosMasVendidos": servicios_ordenados,
         "productosMasVendidos": productos_ordenados,
+        "categoriasProductosMasVendidas": categorias_productos_ordenadas,
+        "stockBajo": stock_bajo,
         "servicioMasVendido": servicios_ordenados[0] if servicios_ordenados else None,
         "productoMasVendido": productos_ordenados[0] if productos_ordenados else None,
         "mejorDiaVenta": mejor_dia,
         "ingresos_totales": ingresos_totales,
+        "total_servicios": total_servicios,
+        "total_productos": total_productos,
         "cantidad_tickets": cantidad_tickets,
         "promedio_venta": promedio,
         "servicios_mas_vendidos": servicios_ordenados,
         "productos_mas_vendidos": productos_ordenados,
+        "categorias_productos_mas_vendidas": categorias_productos_ordenadas,
+        "stock_bajo": stock_bajo,
     }

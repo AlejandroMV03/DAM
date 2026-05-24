@@ -46,6 +46,32 @@ class Servicio(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class CategoriaProducto(Base):
+    __tablename__ = "categorias_productos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False, unique=True)
+    descripcion = Column(String, nullable=True)
+    activa = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class Producto(Base):
+    __tablename__ = "productos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    categoria_producto_id = Column(Integer, ForeignKey("categorias_productos.id"), nullable=False)
+    nombre = Column(String, nullable=False)
+    descripcion = Column(String, nullable=True)
+    precio = Column(Integer, nullable=False)
+    stock = Column(Integer, nullable=False, default=0)
+    stock_minimo = Column(Integer, nullable=False, default=0)
+    activo = Column(Boolean, nullable=False, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class Ticket(Base):
     __tablename__ = "tickets"
 
@@ -68,6 +94,9 @@ class TicketDetalle(Base):
     tipo = Column(String, nullable=False, default="servicio")
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=True)
     servicio_id = Column(Integer, ForeignKey("servicios.id"), nullable=True)
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=True)
+    categoria_producto_id = Column(Integer, ForeignKey("categorias_productos.id"), nullable=True)
+    categoria_producto_nombre = Column(String, nullable=True)
     nombre = Column(String, nullable=True)
     nombre_servicio = Column(String, nullable=True)
     categoria_servicio = Column(String, nullable=True)
@@ -75,3 +104,16 @@ class TicketDetalle(Base):
     cantidad = Column(Integer, nullable=False, default=1)
     subtotal = Column(Integer, nullable=False, default=0)
 
+
+class MovimientoInventario(Base):
+    __tablename__ = "movimientos_inventario"
+
+    id = Column(Integer, primary_key=True, index=True)
+    producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
+    tipo_movimiento = Column(String, nullable=False)
+    cantidad = Column(Integer, nullable=False)
+    stock_anterior = Column(Integer, nullable=False)
+    stock_nuevo = Column(Integer, nullable=False)
+    motivo = Column(String, nullable=True)
+    ticket_id = Column(Integer, ForeignKey("tickets.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

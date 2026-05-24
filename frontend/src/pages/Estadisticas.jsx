@@ -81,6 +81,30 @@ function Ranking({ titulo, items, tipo }) {
   );
 }
 
+function StockBajo({ items }) {
+  if (!items?.length) {
+    return <EmptyState title="Sin stock bajo" description="Los productos por debajo del minimo apareceran aqui." />;
+  }
+
+  return (
+    <div className="ranking-list ranking-list--detailed">
+      {items.map((item, index) => (
+        <div key={`stock-${item.id || item.nombre}-${index}`}>
+          <span className="ranking-index">{index + 1}</span>
+          <span>
+            <strong>{item.nombre}</strong>
+            <small>Minimo {item.stock_minimo}</small>
+          </span>
+          <span className="ranking-total">
+            <b>{item.stock}</b>
+            <small>stock</small>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Estadisticas() {
   const hoy = fechaISO(new Date());
   const [estadisticas, setEstadisticas] = useState(null);
@@ -138,10 +162,6 @@ export default function Estadisticas() {
 
     return () => window.clearTimeout(timer);
   }, [cargarEstadisticas, filtros]);
-
-  const mejorDia = estadisticas?.mejorDiaVenta?.fecha
-    ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(new Date(`${estadisticas.mejorDiaVenta.fecha}T12:00:00`))
-    : 'Sin ventas';
 
   return (
     <>
@@ -232,6 +252,14 @@ export default function Estadisticas() {
               <strong>{formatearDinero(estadisticas.total)}</strong>
             </Card>
             <Card className="metric">
+              <span>Venta servicios</span>
+              <strong>{formatearDinero(estadisticas.totalServicios || 0)}</strong>
+            </Card>
+            <Card className="metric">
+              <span>Venta productos</span>
+              <strong>{formatearDinero(estadisticas.totalProductos || 0)}</strong>
+            </Card>
+            <Card className="metric">
               <span>Tickets generados</span>
               <strong>{estadisticas.tickets}</strong>
             </Card>
@@ -240,16 +268,8 @@ export default function Estadisticas() {
               <strong>{formatearDinero(estadisticas.promedio)}</strong>
             </Card>
             <Card className="metric">
-              <span>Servicio mas vendido</span>
-              <strong>{estadisticas.servicioMasVendido?.nombre || 'Sin ventas'}</strong>
-            </Card>
-            <Card className="metric">
-              <span>Producto mas vendido</span>
-              <strong>{estadisticas.productoMasVendido?.nombre || 'Sin productos'}</strong>
-            </Card>
-            <Card className="metric">
-              <span>Mejor dia de venta</span>
-              <strong>{mejorDia}</strong>
+              <span>Stock bajo</span>
+              <strong>{estadisticas.stockBajo?.length || 0}</strong>
             </Card>
           </div>
 
@@ -287,6 +307,26 @@ export default function Estadisticas() {
                 </div>
               </div>
               <Ranking titulo="Productos vendidos" items={estadisticas.productosMasVendidos || []} tipo="Producto" />
+            </Card>
+
+            <Card className="chart-card">
+              <div className="chart-card__header">
+                <div>
+                  <span className="eyebrow">Categorias</span>
+                  <h2>Productos por categoria</h2>
+                </div>
+              </div>
+              <Ranking titulo="Categorias de productos" items={estadisticas.categoriasProductosMasVendidas || []} tipo="Categoria" />
+            </Card>
+
+            <Card className="chart-card">
+              <div className="chart-card__header">
+                <div>
+                  <span className="eyebrow">Inventario</span>
+                  <h2>Stock bajo</h2>
+                </div>
+              </div>
+              <StockBajo items={estadisticas.stockBajo || []} />
             </Card>
           </div>
         </>

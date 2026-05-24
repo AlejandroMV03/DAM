@@ -2,6 +2,7 @@ import { createAuthApi } from './modules/auth';
 import { createCatalogoApi } from './modules/catalogo';
 import { createClientesApi } from './modules/clientes';
 import { createEstadisticasApi } from './modules/estadisticas';
+import { createInventarioApi } from './modules/inventario';
 import { createTicketsApi } from './modules/tickets';
 
 export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -71,6 +72,7 @@ export const catalogoApi = createCatalogoApi({ request });
 export const clientesApi = createClientesApi({ request });
 export const ticketsApi = createTicketsApi({ buildQuery, request });
 export const estadisticasApi = createEstadisticasApi({ buildQuery, request });
+export const inventarioApi = createInventarioApi({ buildQuery, request });
 
 export const api = {
   setUnauthorizedHandler: (handler) => {
@@ -86,4 +88,5 @@ export const api = {
   ...clientesApi,
   ...ticketsApi,
   ...estadisticasApi,
+  ...inventarioApi,
 };
