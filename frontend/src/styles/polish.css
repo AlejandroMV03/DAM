@@ -67,7 +67,6 @@ select:focus-visible {
 }
 
 .nav-button,
-.bottom-nav button,
 .segmented button {
   min-width: 0;
 }

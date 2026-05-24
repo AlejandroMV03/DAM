@@ -9,6 +9,11 @@ function soloEnteros(valor) {
   return valor.replace(/\D/g, '');
 }
 
+function cantidadValida(valor) {
+  const cantidad = Number(valor);
+  return Number.isInteger(cantidad) && cantidad > 0 ? cantidad : 1;
+}
+
 const adicionalInicial = {
   tipo: 'servicio',
   categoria_id: '',
@@ -19,7 +24,7 @@ const adicionalInicial = {
 };
 
 function crearConceptoServicio(servicio, cantidad = 1) {
-  const qty = Number(cantidad) || 1;
+  const qty = cantidadValida(cantidad);
   const precio = Math.trunc(Number(servicio.precio));
 
   return {
@@ -169,7 +174,7 @@ export default function Ingresos({ usuario }) {
 
   const agregarAdicional = () => {
     setError('');
-    const cantidad = Number(adicional.cantidad) || 1;
+    const cantidad = cantidadValida(adicional.cantidad);
     const precio = Number(adicional.precio);
 
     if (!Number.isInteger(precio) || precio <= 0 || !Number.isInteger(cantidad) || cantidad <= 0) {
@@ -471,7 +476,7 @@ export default function Ingresos({ usuario }) {
                     step="1"
                     value={adicional.cantidad}
                     onChange={(e) =>
-                      setAdicional((actual) => ({ ...actual, cantidad: soloEnteros(e.target.value) || '1' }))
+                      setAdicional((actual) => ({ ...actual, cantidad: soloEnteros(e.target.value) }))
                     }
                   />
                 </Field>

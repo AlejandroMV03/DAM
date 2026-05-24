@@ -1,3 +1,5 @@
+import { DAM_TIME_ZONE, claveDiaLocal } from './date';
+
 export const DAM_BUSINESS = {
   nombre: 'Estetica y Barberia DAM',
   telefono: '9811153639',
@@ -13,9 +15,9 @@ export function obtenerFechaHora(valor) {
   const fecha = valor ? new Date(valor) : new Date();
 
   return {
-    fecha: new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium' }).format(fecha),
-    hora: new Intl.DateTimeFormat('es-MX', { timeStyle: 'short' }).format(fecha),
-    archivo: fecha.toISOString().slice(0, 10),
+    fecha: new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeZone: DAM_TIME_ZONE }).format(fecha),
+    hora: new Intl.DateTimeFormat('es-MX', { timeStyle: 'short', timeZone: DAM_TIME_ZONE }).format(fecha),
+    archivo: claveDiaLocal(fecha.toISOString()),
   };
 }
 

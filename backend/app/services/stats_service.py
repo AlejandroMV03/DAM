@@ -1,12 +1,12 @@
 from collections import defaultdict
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from typing import Optional
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app import models
-from app.utils.dates import parsear_fecha, validar_rango_fechas
+from app.utils.dates import a_hora_local, hoy_local, parsear_fecha, rango_datetime, validar_rango_fechas
 
 
 MESES_CORTOS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
@@ -14,7 +14,7 @@ DIAS_CORTOS = ["lun", "mar", "mie", "jue", "vie", "sab", "dom"]
 
 
 def obtener_rango_estadisticas(periodo: str, fecha_inicio: Optional[str], fecha_fin: Optional[str]) -> tuple[date, date]:
-    hoy = date.today()
+    hoy = hoy_local()
     periodo_normalizado = periodo.lower()
 
     if periodo_normalizado == "dia":
@@ -105,8 +105,7 @@ def construir_estadisticas(
     db: Session,
 ):
     inicio, fin = obtener_rango_estadisticas(periodo, fecha_inicio, fecha_fin)
-    inicio_dt = datetime.combine(inicio, time.min)
-    fin_dt = datetime.combine(fin + timedelta(days=1), time.min)
+    inicio_dt, fin_dt = rango_datetime(inicio.isoformat(), fin.isoformat())
 
     tickets = (
         db.query(models.Ticket)
@@ -126,7 +125,7 @@ def construir_estadisticas(
     for ticket in tickets:
         total = int(ticket.total or 0)
         ingresos_totales += total
-        fecha = ticket.fecha_hora
+        fecha = a_hora_local(ticket.fecha_hora)
 
         if fecha:
             clave = clave_ticket_por_periodo(periodo, fecha)
@@ -192,4 +191,3 @@ def construir_estadisticas(
         "servicios_mas_vendidos": servicios_ordenados,
         "productos_mas_vendidos": productos_ordenados,
     }
-

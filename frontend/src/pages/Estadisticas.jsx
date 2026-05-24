@@ -25,7 +25,7 @@ function LineChart({ labels, ventas }) {
   });
   const linea = puntos.map((punto, index) => `${index === 0 ? 'M' : 'L'} ${punto.x} ${punto.y}`).join(' ');
   const area = `${linea} L ${puntos[puntos.length - 1]?.x || padding} ${height - padding} L ${puntos[0]?.x || padding} ${height - padding} Z`;
-  const etiquetas = puntos.filter((_, index) => index === 0 || index === puntos.length - 1 || index % Math.ceil(puntos.length / 6) === 0);
+  const etiquetas = puntos.filter((_, index) => index === 0 || index === puntos.length - 1 || index % Math.ceil(puntos.length / 5) === 0);
 
   return (
     <div className="line-chart">
@@ -47,8 +47,8 @@ function LineChart({ labels, ventas }) {
             <title>{`${punto.label}: ${formatearDinero(punto.valor)}`}</title>
           </circle>
         ))}
-        {etiquetas.map((punto) => (
-          <text key={punto.label} x={punto.x} y={height - 8} textAnchor="middle" className="line-chart__label">
+        {etiquetas.map((punto, index) => (
+          <text key={`${punto.label}-${index}`} x={punto.x} y={height - 8} textAnchor="middle" className="line-chart__label">
             {punto.label}
           </text>
         ))}
@@ -120,7 +120,7 @@ export default function Estadisticas() {
     try {
       setLoading(true);
       setError('');
-      const data = await api.obtenerEstadisticas(filtros);
+      const data = await api.obtenerEstadisticas(parametros);
       setEstadisticas(data);
     } catch (err) {
       const mensajeError = err.message || 'No se pudieron cargar las estadisticas.';

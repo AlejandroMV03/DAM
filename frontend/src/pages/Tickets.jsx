@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Card, EmptyState, Field, Modal, PageHeader, SkeletonCards } from '../components/ui';
 import { api } from '../services/api';
 import { toast } from '../utils/toast';
-import { fechaFutura, fechaISO, formatearDia, formatearFecha, rangoPorPeriodo } from '../utils/date';
+import { claveDiaLocal, fechaFutura, fechaISO, formatearDia, formatearFecha, rangoPorPeriodo } from '../utils/date';
 import {
   DAM_BUSINESS,
   descargarTicketPDF,
@@ -180,7 +180,7 @@ export default function Tickets() {
       setLoading(true);
       setError('');
       setMensaje('');
-      const data = await api.obtenerTickets(parametrosBusqueda);
+      const data = await api.obtenerTickets(parametros);
       setTickets(data || []);
     } catch (err) {
       const mensajeError = err.message || 'No se pudo cargar el historial.';
@@ -206,7 +206,7 @@ export default function Tickets() {
 
   const grupos = useMemo(() => {
     return tickets.reduce((acumulado, ticket) => {
-      const clave = ticket.fecha_hora ? ticket.fecha_hora.slice(0, 10) : 'sin-fecha';
+      const clave = claveDiaLocal(ticket.fecha_hora);
       if (!acumulado[clave]) acumulado[clave] = [];
       acumulado[clave].push(ticket);
       return acumulado;

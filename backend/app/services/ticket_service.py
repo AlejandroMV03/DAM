@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app import models, schemas
 from app.services.customer_service import obtener_o_crear_cliente
-from app.utils.dates import rango_datetime
+from app.utils.dates import a_hora_local, ahora_local, rango_datetime
 
 
 def aplicar_filtros_tickets(
@@ -78,6 +78,7 @@ def crear_ticket_pagado(datos: schemas.TicketCrear, usuario: models.Usuario, db:
         total=total_calculado,
         metodo_pago=datos.metodo_pago,
         estado="pagado",
+        fecha_hora=ahora_local(),
     )
     db.add(nuevo_ticket)
     db.flush()
@@ -181,9 +182,8 @@ def serializar_ticket(ticket: models.Ticket, db: Session):
         "precio_servicio": primer_concepto["precio"] if primer_concepto else int(ticket.total),
         "conceptos": conceptos,
         "subtotal": sum(concepto["subtotal"] for concepto in conceptos) if conceptos else int(ticket.total),
-        "fecha_hora": ticket.fecha_hora.isoformat() if ticket.fecha_hora else None,
+        "fecha_hora": a_hora_local(ticket.fecha_hora).isoformat() if ticket.fecha_hora else None,
         "total": int(ticket.total),
         "metodo_pago": ticket.metodo_pago,
         "estado": ticket.estado or "pagado",
     }
-

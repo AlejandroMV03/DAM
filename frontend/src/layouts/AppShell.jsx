@@ -64,19 +64,6 @@ export default function AppShell({ usuario, onCerrarSesion }) {
           <Vista usuario={usuario} onNavigate={navegar} />
         </div>
 
-        <nav className="bottom-nav" aria-label="Navegacion movil">
-          {APP_ROUTES.map((opcion) => (
-            <button
-              key={opcion.id}
-              type="button"
-              className={vistaActual === opcion.id ? 'bottom-nav__active' : ''}
-              onClick={() => navegar(opcion.id)}
-            >
-              <span>{opcion.icono}</span>
-              <small>{opcion.nombre}</small>
-            </button>
-          ))}
-        </nav>
       </main>
     </div>
   );
